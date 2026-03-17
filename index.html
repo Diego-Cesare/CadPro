@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+    <title>Cadastro de Produto</title>
+  </head>
+  <body>
+    <div class="container">
+      <h2>CadPro</h2>
+
+      <div class="code-buttons">
+        <button class="scan-btn" onclick="abrirCamera()">
+          <i class="ph ph-device-mobile-camera"></i>
+          Ler Código
+        </button>
+        <div class="manual-code">
+          <button class="manual-btn" onclick="digitarCodigo()">
+            <i class="ph ph-keyboard"></i>
+          </button>
+          <label for=""
+            >Digite o codigo de barras
+            <input
+              type="text"
+              id="barcode"
+              placeholder="Código de barras"
+              readonly
+            />
+          </label>
+        </div>
+      </div>
+
+      <form action="">
+        <video id="video"></video>
+        <label for=""
+          >Digite o nome do produto
+          <input
+            type="text"
+            id="nome"
+            placeholder="Ex.: Arroz parboerizado Tiu João 1kg"
+          />
+        </label>
+        <label for=""
+          >Quantidade de produtos
+          <input type="number" id="quantidade" placeholder="Quantidade" />
+        </label>
+        <label for=""
+          >Selecione a data de validade do produto
+          <input type="date" id="validade" />
+        </label>
+      </form>
+      <div class="actions-buttons">
+        <pre id="output"></pre>
+        <button class="save-btn" onclick="salvar()">
+          <i class="ph ph-floppy-disk-back"></i> Salvar
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let stream = null;
+
+      function abrirCamera() {
+        const video = document.getElementById("video");
+        video.style.display = "block";
+
+        navigator.mediaDevices
+          .getUserMedia({ video: { facingMode: "environment" } })
+          .then((s) => {
+            stream = s;
+            video.srcObject = stream;
+            video.play();
+
+            // Leitura real com ZXing
+            const script = document.createElement("script");
+            script.src = "https://unpkg.com/@zxing/library@latest";
+            script.onload = () => {
+              const codeReader = new ZXing.BrowserBarcodeReader();
+
+              codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+                if (result) {
+                  document.getElementById("barcode").value = result.text;
+                  pararCamera();
+                  codeReader.reset();
+                  alert("Código lido: " + result.text);
+                }
+              });
+            };
+            document.body.appendChild(script);
+          })
+          .catch((err) => alert("Erro ao acessar câmera"));
+      }
+
+      function pararCamera() {
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
+        document.getElementById("video").style.display = "none";
+      }
+
+      function digitarCodigo() {
+        document.getElementById("barcode").removeAttribute("readonly");
+      }
+
+      function salvar() {
+        const produto = {
+          codigo: document.getElementById("barcode").value,
+          nome: document.getElementById("nome").value,
+          quantidade: document.getElementById("quantidade").value,
+          validade: document.getElementById("validade").value,
+        };
+
+        document.getElementById("output").textContent = JSON.stringify(
+          produto,
+          null,
+          2,
+        );
+      }
+    </script>
+  </body>
+</html>
