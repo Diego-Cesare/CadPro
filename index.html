@@ -114,6 +114,14 @@
             }
 
             Quagga.start();
+            setTimeout(() => {
+              const video = document.querySelector("#scanner video");
+              if (video) {
+                video.setAttribute("playsinline", true);
+                video.muted = true;
+                video.play();
+              }
+            }, 500);
           },
         );
 
