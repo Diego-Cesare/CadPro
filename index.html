@@ -2,6 +2,8 @@
 <html lang="pt-BR">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+
     <link
       rel="stylesheet"
       type="text/css"
@@ -65,10 +67,14 @@
 
     <script>
       let stream = null;
+      let codeReader = null;
 
       function abrirCamera() {
         const video = document.getElementById("video");
+        const overlay = document.getElementById("overlay");
+
         video.style.display = "block";
+        overlay.style.display = "block";
 
         navigator.mediaDevices
           .getUserMedia({ video: { facingMode: "environment" } })
@@ -77,35 +83,34 @@
             video.srcObject = stream;
             video.play();
 
-            // Leitura real com ZXing
-            const script = document.createElement("script");
-            script.src = "https://unpkg.com/@zxing/library@latest";
-            script.onload = () => {
-              const codeReader = new ZXing.BrowserBarcodeReader();
+            codeReader = new ZXing.BrowserMultiFormatReader();
 
-              codeReader.decodeFromVideoDevice(null, video, (result, err) => {
-                if (result) {
-                  document.getElementById("barcode").value = result.text;
-                  pararCamera();
-                  codeReader.reset();
-                  alert("Código lido: " + result.text);
-                }
-              });
-            };
-            document.body.appendChild(script);
+            codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+              if (result) {
+                document.getElementById("barcode").value = result.text;
+                pararCamera();
+                alert("Código lido: " + result.text);
+              }
+            });
           })
-          .catch((err) => alert("Erro ao acessar câmera"));
+          .catch(() => alert("Erro ao acessar câmera"));
       }
 
       function pararCamera() {
         if (stream) {
           stream.getTracks().forEach((track) => track.stop());
         }
+        if (codeReader) {
+          codeReader.reset();
+        }
         document.getElementById("video").style.display = "none";
+        document.getElementById("overlay").style.display = "none";
       }
 
       function digitarCodigo() {
-        document.getElementById("barcode").removeAttribute("readonly");
+        const input = document.getElementById("barcode");
+        input.removeAttribute("readonly");
+        input.focus();
       }
 
       function salvar() {
