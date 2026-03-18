@@ -2,8 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
-
+    <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
     <link
       rel="stylesheet"
       type="text/css"
@@ -70,7 +69,6 @@
 
     <script>
       let stream = null;
-      let codeReader = new ZXing.BrowserMultiFormatReader();
       let lendo = false;
 
       function digitarCodigo() {
@@ -86,121 +84,82 @@
         video.style.display = "block";
         overlay.style.display = "block";
 
-        const hints = new Map();
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-          ZXing.BarcodeFormat.EAN_13,
-          ZXing.BarcodeFormat.EAN_8,
-          ZXing.BarcodeFormat.CODE_128,
-          ZXing.BarcodeFormat.UPC_A,
-          ZXing.BarcodeFormat.UPC_E,
-        ]);
-
-        codeReader = new ZXing.BrowserMultiFormatReader(hints);
-
-        navigator.mediaDevices
-          .getUserMedia({
-            video: {
-              facingMode: "environment",
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
+        Quagga.init(
+          {
+            inputStream: {
+              type: "LiveStream",
+              target: video,
+              constraints: {
+                facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
             },
-          })
-          .then((s) => {
-            stream = s;
-            video.srcObject = stream;
-            video.play();
+            locator: {
+              patchSize: "medium",
+              halfSample: true,
+            },
+            numOfWorkers: navigator.hardwareConcurrency || 4,
+            decoder: {
+              readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "code_128_reader",
+              ],
+            },
+            locate: true,
+          },
+          function (err) {
+            if (err) {
+              console.error(err);
+              alert("Erro ao iniciar scanner");
+              return;
+            }
 
-            // fallback automático entre métodos
-            video.onloadedmetadata = () => {
-              tentarLeitura(video);
-            };
-          })
-          .catch(() => alert("Erro ao acessar câmera"));
-      }
+            Quagga.start();
+          },
+        );
 
-      function tentarLeitura(video) {
-        // Método 1: leitura direta
-        codeReader.decodeFromVideoDevice(null, video, (result, err) => {
-          if (result && !lendo) {
-            sucessoLeitura(result.text);
+        Quagga.onDetected(function (result) {
+          if (!lendo) {
+            lendo = true;
+
+            const codigo = result.codeResult.code;
+
+            document.getElementById("barcode").value = codigo;
+
+            pararCamera();
+
+            if (navigator.vibrate) navigator.vibrate(200);
+
+            alert("Código lido: " + codigo);
           }
         });
-
-        // Método 2: fallback com crop central
-        setTimeout(() => {
-          if (!lendo) {
-            leituraComCrop(video);
-          }
-        }, 2500);
       }
 
-      function leituraComCrop(video) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+      function pararCamera() {
+        lendo = false;
 
-        const largura = video.videoWidth;
-        const altura = video.videoHeight;
+        Quagga.stop();
 
-        // área central (melhor zona de leitura)
-        const cropW = largura * 0.6;
-        const cropH = altura * 0.3;
+        document.getElementById("video").style.display = "none";
+        document.getElementById("overlay").style.display = "none";
+      }
 
-        canvas.width = cropW;
-        canvas.height = cropH;
+      function salvar() {
+        const produto = {
+          codigo: document.getElementById("barcode").value,
+          nome: document.getElementById("nome").value,
+          quantidade: document.getElementById("quantidade").value,
+          validade: document.getElementById("validade").value,
+        };
 
-        const loop = setInterval(() => {
-          if (lendo) {
-            clearInterval(loop);
-            return;
-          }
-
-          ctx.drawImage(
-            video,
-            largura * 0.2, // X (centro)
-            altura * 0.35, // Y (centro vertical)
-            cropW,
-            cropH,
-            0,
-            0,
-            cropW,
-            cropH,
-          );
-
-          try {
-            const imageData = ctx.getImageData(0, 0, cropW, cropH);
-
-            // melhora contraste
-            const data = imageData.data;
-            for (let i = 0; i < data.length; i += 4) {
-              const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-              const val = avg > 140 ? 255 : 0;
-
-              data[i] = val;
-              data[i + 1] = val;
-              data[i + 2] = val;
-            }
-
-            // converte para bitmap
-            const luminance = new ZXing.RGBLuminanceSource(
-              imageData.data,
-              cropW,
-              cropH,
-            );
-
-            const binaryBitmap = new ZXing.BinaryBitmap(
-              new ZXing.HybridBinarizer(luminance),
-            );
-
-            const resultado = codeReader.decode(binaryBitmap);
-
-            if (resultado && !lendo) {
-              sucessoLeitura(resultado.text);
-              clearInterval(loop);
-            }
-          } catch (e) {
-            // normal falhar várias vezes
-          }
-        }, 250);
+        document.getElementById("output").textContent = JSON.stringify(
+          produto,
+          null,
+          2,
+        );
       }
     </script>
   </body>
