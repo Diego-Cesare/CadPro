@@ -78,6 +78,7 @@
       function abrirCamera() {
         const scanner = document.getElementById("scanner");
         const overlay = document.getElementById("overlay");
+        scanner.innerHTML = "";
 
         scanner.style.display = "block";
         overlay.style.display = "block";
@@ -148,12 +149,6 @@
         document.getElementById("scanner").style.display = "none";
         document.getElementById("overlay").style.display = "none";
       }
-
-      document.getElementById("output").textContent = JSON.stringify(
-        produto,
-        null,
-        2,
-      );
     </script>
   </body>
 </html>
