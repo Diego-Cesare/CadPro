@@ -66,14 +66,12 @@
     </div>
 
     <script>
-      let stream = null;
       let lendo = false;
 
       function digitarCodigo() {
         const input = document.getElementById("barcode");
         input.removeAttribute("readonly");
         input.focus();
-        // Opcional: voltar a ser readonly ao perder o foco
         input.onblur = () => input.setAttribute("readonly", true);
       }
 
@@ -84,37 +82,73 @@
         scanner.style.display = "block";
         overlay.style.display = "block";
 
+        scanner.innerHTML = "";
+
+        // remove listeners antigos (CRÍTICO)
+        if (Quagga.offDetected) Quagga.offDetected();
+
         Quagga.init(
           {
             inputStream: {
-              name: "LiveStream",
               type: "LiveStream",
               target: scanner,
               constraints: {
-                facingMode: "environment", // Prioriza a câmera traseira
+                facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+              // 🔥 área central (muito importante)
+              area: {
+                top: "30%",
+                right: "20%",
+                left: "20%",
+                bottom: "30%",
               },
             },
-            decoder: {
-              readers: ["ean_reader", "ean_8_reader", "code_128_reader"],
+            locator: {
+              patchSize: "large",
+              halfSample: false,
             },
+            decoder: {
+              readers: ["ean_reader"], // 🔥 foco total
+            },
+            locate: true,
+            frequency: 10,
+            numOfWorkers: navigator.hardwareConcurrency || 4,
           },
           function (err) {
             if (err) {
               console.error(err);
-              alert("Erro ao acessar a câmera. Verifique as permissões.");
+              alert("Erro ao acessar câmera");
               return;
             }
+
             Quagga.start();
           },
         );
 
+        let ultimoCodigo = null;
+        let contagem = 0;
+
         Quagga.onDetected((result) => {
-          if (!lendo) {
+          const codigo = result.codeResult.code;
+
+          // 🔁 filtro de repetição
+          if (codigo === ultimoCodigo) {
+            contagem++;
+          } else {
+            ultimoCodigo = codigo;
+            contagem = 1;
+          }
+
+          // ✅ valida + estabilidade
+          if (contagem >= 3 && validarEAN13(codigo) && !lendo) {
             lendo = true;
-            const codigo = result.codeResult.code;
+
             document.getElementById("barcode").value = codigo;
 
             if (navigator.vibrate) navigator.vibrate(100);
+
             pararCamera();
           }
         });
@@ -122,9 +156,28 @@
 
       function pararCamera() {
         lendo = false;
-        Quagga.stop();
+
+        try {
+          Quagga.stop();
+        } catch (e) {}
+
         document.getElementById("scanner").style.display = "none";
         document.getElementById("overlay").style.display = "none";
+      }
+
+      function validarEAN13(codigo) {
+        if (!/^\d{13}$/.test(codigo)) return false;
+
+        let soma = 0;
+
+        for (let i = 0; i < 12; i++) {
+          let num = parseInt(codigo[i]);
+          soma += i % 2 === 0 ? num : num * 3;
+        }
+
+        let digito = (10 - (soma % 10)) % 10;
+
+        return digito === parseInt(codigo[12]);
       }
 
       function salvar() {
@@ -136,13 +189,17 @@
         };
 
         if (!produto.codigo || !produto.nome) {
-          alert("Por favor, preencha os campos principais!");
+          alert("Preencha código e nome!");
           return;
         }
 
-        console.log("Produto Salvo:", produto);
-        alert("Produto salvo com sucesso!");
-        // Aqui você enviaria para um banco de dados ou localStorage
+        document.getElementById("output").textContent = JSON.stringify(
+          produto,
+          null,
+          2,
+        );
+
+        console.log("Produto:", produto);
       }
     </script>
   </body>
