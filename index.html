@@ -105,7 +105,9 @@
             video.play();
 
             // fallback automático entre métodos
-            tentarLeitura(video);
+            video.onloadedmetadata = () => {
+              tentarLeitura(video);
+            };
           })
           .catch(() => alert("Erro ao acessar câmera"));
       }
@@ -133,7 +135,66 @@
         const largura = video.videoWidth;
         const altura = video.videoHeight;
 
-        const cropL = largura * 0.2;
+        // área central (melhor zona de leitura)
+        const cropW = largura * 0.6;
+        const cropH = altura * 0.3;
+
+        canvas.width = cropW;
+        canvas.height = cropH;
+
+        const loop = setInterval(() => {
+          if (lendo) {
+            clearInterval(loop);
+            return;
+          }
+
+          ctx.drawImage(
+            video,
+            largura * 0.2, // X (centro)
+            altura * 0.35, // Y (centro vertical)
+            cropW,
+            cropH,
+            0,
+            0,
+            cropW,
+            cropH,
+          );
+
+          try {
+            const imageData = ctx.getImageData(0, 0, cropW, cropH);
+
+            // melhora contraste
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+              const val = avg > 140 ? 255 : 0;
+
+              data[i] = val;
+              data[i + 1] = val;
+              data[i + 2] = val;
+            }
+
+            // converte para bitmap
+            const luminance = new ZXing.RGBLuminanceSource(
+              imageData.data,
+              cropW,
+              cropH,
+            );
+
+            const binaryBitmap = new ZXing.BinaryBitmap(
+              new ZXing.HybridBinarizer(luminance),
+            );
+
+            const resultado = codeReader.decode(binaryBitmap);
+
+            if (resultado && !lendo) {
+              sucessoLeitura(resultado.text);
+              clearInterval(loop);
+            }
+          } catch (e) {
+            // normal falhar várias vezes
+          }
+        }, 250);
       }
     </script>
   </body>
