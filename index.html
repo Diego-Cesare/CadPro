@@ -38,9 +38,9 @@
         </div>
       </div>
 
-      <form action="">
+      <form onsubmit="event.preventDefault()">
         <div style="position: relative">
-          <video id="video"></video>
+          <video id="video" playsinline></video>
           <div id="overlay"></div>
         </div>
         <label for=""
@@ -86,12 +86,17 @@
             video.srcObject = stream;
             video.play();
 
-            codeReader = new ZXing.BrowserMultiFormatReader();
+            let codeReader = new ZXing.BrowserMultiFormatReader();
+
+            let lendo = false;
 
             codeReader.decodeFromVideoDevice(null, video, (result, err) => {
-              if (result) {
+              if (result && !lendo) {
+                lendo = true;
+
                 document.getElementById("barcode").value = result.text;
                 pararCamera();
+
                 alert("Código lido: " + result.text);
               }
             });
@@ -100,6 +105,7 @@
       }
 
       function pararCamera() {
+        lendo = false;
         if (stream) {
           stream.getTracks().forEach((track) => track.stop());
         }
