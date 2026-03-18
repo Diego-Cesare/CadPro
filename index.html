@@ -73,12 +73,13 @@
         const input = document.getElementById("barcode");
         input.removeAttribute("readonly");
         input.focus();
+        // Opcional: voltar a ser readonly ao perder o foco
+        input.onblur = () => input.setAttribute("readonly", true);
       }
 
       function abrirCamera() {
         const scanner = document.getElementById("scanner");
         const overlay = document.getElementById("overlay");
-        scanner.innerHTML = "";
 
         scanner.style.display = "block";
         overlay.style.display = "block";
@@ -86,76 +87,62 @@
         Quagga.init(
           {
             inputStream: {
+              name: "LiveStream",
               type: "LiveStream",
-              target: scanner, // ✅ agora correto
+              target: scanner,
               constraints: {
-                facingMode: "environment",
+                facingMode: "environment", // Prioriza a câmera traseira
               },
             },
-            locator: {
-              patchSize: "large",
-              halfSample: false,
-            },
             decoder: {
-              readers: [
-                "ean_reader",
-                "ean_8_reader",
-                "upc_reader",
-                "code_128_reader",
-              ],
+              readers: ["ean_reader", "ean_8_reader", "code_128_reader"],
             },
-            locate: true,
           },
           function (err) {
             if (err) {
               console.error(err);
-              alert("Erro ao iniciar scanner");
+              alert("Erro ao acessar a câmera. Verifique as permissões.");
               return;
             }
-
             Quagga.start();
-            setTimeout(() => {
-              const video = document.querySelector("#scanner video");
-              if (video) {
-                video.setAttribute("playsinline", true);
-                video.muted = true;
-                video.play();
-              }
-            }, 500);
           },
         );
 
-        Quagga.onDetected(function (result) {
+        Quagga.onDetected((result) => {
           if (!lendo) {
             lendo = true;
-
             const codigo = result.codeResult.code;
-
             document.getElementById("barcode").value = codigo;
 
+            if (navigator.vibrate) navigator.vibrate(100);
             pararCamera();
-
-            if (navigator.vibrate) navigator.vibrate(200);
           }
         });
       }
 
       function pararCamera() {
         lendo = false;
-
         Quagga.stop();
-
-        document.getElementById("video").style.display = "none";
+        document.getElementById("scanner").style.display = "none";
         document.getElementById("overlay").style.display = "none";
       }
 
-      function pararCamera() {
-        lendo = false;
+      function salvar() {
+        const produto = {
+          codigo: document.getElementById("barcode").value,
+          nome: document.getElementById("nome").value,
+          quantidade: document.getElementById("quantidade").value,
+          validade: document.getElementById("validade").value,
+        };
 
-        Quagga.stop();
+        if (!produto.codigo || !produto.nome) {
+          alert("Por favor, preencha os campos principais!");
+          return;
+        }
 
-        document.getElementById("scanner").style.display = "none";
-        document.getElementById("overlay").style.display = "none";
+        console.log("Produto Salvo:", produto);
+        alert("Produto salvo com sucesso!");
+        // Aqui você enviaria para um banco de dados ou localStorage
       }
     </script>
   </body>

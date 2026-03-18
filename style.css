@@ -133,6 +133,35 @@ input::placeholder {
   background: black;
 }
 
+/* Estilo para o overlay de mira */
+#overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 2px;
+  background-color: rgba(255, 0, 0, 0.5); /* Linha vermelha clássica */
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+  z-index: 10;
+  display: none; /* Só aparece quando o scanner abrir */
+  pointer-events: none; /* Não interfere nos cliques */
+}
+
+/* Uma moldura opcional para o scanner */
+#scanner::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  z-index: 5;
+  pointer-events: none;
+}
+
 /* video {
   width: 100%;
   margin-top: 10px;
