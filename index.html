@@ -73,6 +73,12 @@
       let codeReader = new ZXing.BrowserMultiFormatReader();
       let lendo = false;
 
+      function digitarCodigo() {
+        const input = document.getElementById("barcode");
+        input.removeAttribute("readonly");
+        input.focus();
+      }
+
       function abrirCamera() {
         const video = document.getElementById("video");
         const overlay = document.getElementById("overlay");
