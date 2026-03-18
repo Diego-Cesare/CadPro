@@ -1,187 +1,44 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css"
-    />
-
-    <link rel="stylesheet" href="style.css" />
-    <title>Cadastro de Produto</title>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Ler Barcode</title>
   </head>
+
   <body>
-    <div class="container">
-      <h2>CadPro</h2>
+    <div id="resultado"></div>
+    <div id="camera"></div>
 
-      <div class="code-buttons">
-        <button class="scan-btn" onclick="abrirCamera()">
-          <i class="ph ph-device-mobile-camera"></i>
-          Ler Código
-        </button>
-        <div class="manual-code">
-          <button class="manual-btn" onclick="digitarCodigo()">
-            <i class="ph ph-keyboard"></i>
-          </button>
-          <label for=""
-            >Digite o codigo de barras
-            <input
-              type="text"
-              id="barcode"
-              placeholder="Código de barras"
-              readonly
-            />
-          </label>
-        </div>
-      </div>
-
-      <form onsubmit="event.preventDefault()">
-        <div id="scanner" style="position: relative"></div>
-        <div id="overlay"></div>
-        <label for=""
-          >Digite o nome do produto
-          <input
-            type="text"
-            id="nome"
-            placeholder="Ex.: Arroz parboerizado Tiu João 1kg"
-          />
-        </label>
-        <label for=""
-          >Quantidade de produtos
-          <input type="number" id="quantidade" placeholder="Quantidade" />
-        </label>
-        <label for=""
-          >Selecione a data de validade do produto
-          <input type="date" id="validade" />
-        </label>
-      </form>
-      <div class="actions-buttons">
-        <pre id="output"></pre>
-        <button class="save-btn" onclick="salvar()">
-          <i class="ph ph-floppy-disk-back"></i> Salvar
-        </button>
-      </div>
-    </div>
+    <script src="quagga.min.js"></script>
 
     <script>
-      let lendo = false;
-
-      function digitarCodigo() {
-        const input = document.getElementById("barcode");
-        input.removeAttribute("readonly");
-        input.focus();
-        input.onblur = () => input.setAttribute("readonly", true);
-      }
-
-      function abrirCamera() {
-        const scanner = document.getElementById("scanner");
-        const overlay = document.getElementById("overlay");
-
-        scanner.style.display = "block";
-        overlay.style.display = "block";
-
-        scanner.innerHTML = "";
-
-        // remove listeners antigos (CRÍTICO)
-        if (Quagga.offDetected) Quagga.offDetected();
-
-        Quagga.init(
-          {
-            inputStream: {
-              name: "Live",
-              type: "LiveStream",
-              // target: document.querySelector("#yourElement"), // Or '#yourElement' (optional)
-            },
-            decoder: {
-              readers: ["code_128_reader"],
-            },
+      Quagga.init(
+        {
+          inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector("#camera"), // Or '#yourElement' (optional)
           },
-          function (err) {
-            if (err) {
-              console.log(err);
-              return;
-            }
-            console.log("Initialization finished. Ready to start");
-            Quagga.start();
+          decoder: {
+            readers: ["code_128_reader"],
           },
-        );
-
-        let ultimoCodigo = null;
-        let contagem = 0;
-
-        Quagga.onDetected((result) => {
-          const codigo = result.codeResult.code;
-
-          // 🔁 filtro de repetição
-          if (codigo === ultimoCodigo) {
-            contagem++;
-          } else {
-            ultimoCodigo = codigo;
-            contagem = 1;
+        },
+        function (err) {
+          if (err) {
+            console.log(err);
+            return;
           }
+          console.log("Initialization finished. Ready to start");
+          Quagga.start();
+        },
+      );
 
-          // ✅ valida + estabilidade
-          if (contagem >= 3 && validarEAN13(codigo) && !lendo) {
-            lendo = true;
-
-            document.getElementById("barcode").value = codigo;
-
-            if (navigator.vibrate) navigator.vibrate(100);
-
-            pararCamera();
-          }
-        });
-      }
-
-      function pararCamera() {
-        lendo = false;
-
-        try {
-          Quagga.stop();
-        } catch (e) {}
-
-        document.getElementById("scanner").style.display = "none";
-        document.getElementById("overlay").style.display = "none";
-      }
-
-      function validarEAN13(codigo) {
-        if (!/^\d{13}$/.test(codigo)) return false;
-
-        let soma = 0;
-
-        for (let i = 0; i < 12; i++) {
-          let num = parseInt(codigo[i]);
-          soma += i % 2 === 0 ? num : num * 3;
-        }
-
-        let digito = (10 - (soma % 10)) % 10;
-
-        return digito === parseInt(codigo[12]);
-      }
-
-      function salvar() {
-        const produto = {
-          codigo: document.getElementById("barcode").value,
-          nome: document.getElementById("nome").value,
-          quantidade: document.getElementById("quantidade").value,
-          validade: document.getElementById("validade").value,
-        };
-
-        if (!produto.codigo || !produto.nome) {
-          alert("Preencha código e nome!");
-          return;
-        }
-
-        document.getElementById("output").textContent = JSON.stringify(
-          produto,
-          null,
-          2,
-        );
-
-        console.log("Produto:", produto);
-      }
+      Quagga.onDetected(function (data) {
+        console.log(data.codeResult.code);
+        document.querySelector("#resultado").innerText = data.codeResult.code;
+      });
     </script>
   </body>
 </html>
