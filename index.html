@@ -74,21 +74,32 @@
 
       function abrirCamera() {
         const video = document.getElementById("video");
-        const overlay = document.getElementById("overlay");
 
         video.style.display = "block";
-        overlay.style.display = "block";
+
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+          ZXing.BarcodeFormat.EAN_13,
+          ZXing.BarcodeFormat.EAN_8,
+          ZXing.BarcodeFormat.CODE_128,
+          ZXing.BarcodeFormat.UPC_A,
+          ZXing.BarcodeFormat.UPC_E,
+        ]);
+
+        codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
         navigator.mediaDevices
-          .getUserMedia({ video: { facingMode: "environment" } })
+          .getUserMedia({
+            video: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          })
           .then((s) => {
             stream = s;
             video.srcObject = stream;
             video.play();
-
-            let codeReader = new ZXing.BrowserMultiFormatReader();
-
-            let lendo = false;
 
             codeReader.decodeFromVideoDevice(null, video, (result, err) => {
               if (result && !lendo) {
@@ -103,7 +114,6 @@
           })
           .catch(() => alert("Erro ao acessar câmera"));
       }
-
       function pararCamera() {
         lendo = false;
         if (stream) {
