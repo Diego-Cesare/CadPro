@@ -38,10 +38,8 @@
       </div>
 
       <form onsubmit="event.preventDefault()">
-        <div style="position: relative">
-          <video id="video" playsinline></video>
-          <div id="overlay"></div>
-        </div>
+        <div id="scanner" style="position: relative"></div>
+        <div id="overlay"></div>
         <label for=""
           >Digite o nome do produto
           <input
@@ -68,99 +66,95 @@
     </div>
 
     <script>
-      let stream = null;
-      let lendo = false;
+            let stream = null;
+            let lendo = false;
 
-      function digitarCodigo() {
-        const input = document.getElementById("barcode");
-        input.removeAttribute("readonly");
-        input.focus();
-      }
-
-      function abrirCamera() {
-        const video = document.getElementById("video");
-        const overlay = document.getElementById("overlay");
-
-        video.style.display = "block";
-        overlay.style.display = "block";
-
-        Quagga.init(
-          {
-            inputStream: {
-              type: "LiveStream",
-              target: video,
-              constraints: {
-                facingMode: "environment",
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-              },
-            },
-            locator: {
-              patchSize: "medium",
-              halfSample: true,
-            },
-            numOfWorkers: navigator.hardwareConcurrency || 4,
-            decoder: {
-              readers: [
-                "ean_reader",
-                "ean_8_reader",
-                "upc_reader",
-                "code_128_reader",
-              ],
-            },
-            locate: true,
-          },
-          function (err) {
-            if (err) {
-              console.error(err);
-              alert("Erro ao iniciar scanner");
-              return;
+            function digitarCodigo() {
+              const input = document.getElementById("barcode");
+              input.removeAttribute("readonly");
+              input.focus();
             }
 
-            Quagga.start();
-          },
-        );
+            function abrirCamera() {
+              const scanner = document.getElementById("scanner");
+              const overlay = document.getElementById("overlay");
 
-        Quagga.onDetected(function (result) {
-          if (!lendo) {
-            lendo = true;
+              scanner.style.display = "block";
+              overlay.style.display = "block";
 
-            const codigo = result.codeResult.code;
+              Quagga.init(
+                {
+                  inputStream: {
+                    type: "LiveStream",
+                    target: scanner, // ✅ agora correto
+                    constraints: {
+                      facingMode: "environment",
+                    },
+                  },
+                  locator: {
+                    patchSize: "large",
+                    halfSample: false,
+                  },
+                  decoder: {
+                    readers: [
+                      "ean_reader",
+                      "ean_8_reader",
+                      "upc_reader",
+                      "code_128_reader",
+                    ],
+                  },
+                  locate: true,
+                },
+                function (err) {
+                  if (err) {
+                    console.error(err);
+                    alert("Erro ao iniciar scanner");
+                    return;
+                  }
 
-            document.getElementById("barcode").value = codigo;
+                  Quagga.start();
+                },
+              );
 
-            pararCamera();
+              Quagga.onDetected(function (result) {
+                if (!lendo) {
+                  lendo = true;
 
-            if (navigator.vibrate) navigator.vibrate(200);
+                  const codigo = result.codeResult.code;
 
-            alert("Código lido: " + codigo);
-          }
-        });
-      }
+                  document.getElementById("barcode").value = codigo;
+
+                  pararCamera();
+
+                  if (navigator.vibrate) navigator.vibrate(200);
+                }
+              });
+            }
+
+            function pararCamera() {
+              lendo = false;
+
+              Quagga.stop();
+
+              document.getElementById("video").style.display = "none";
+              document.getElementById("overlay").style.display = "none";
+            }
 
       function pararCamera() {
         lendo = false;
 
         Quagga.stop();
 
-        document.getElementById("video").style.display = "none";
+        document.getElementById("scanner").style.display = "none";
         document.getElementById("overlay").style.display = "none";
       }
 
-      function salvar() {
-        const produto = {
-          codigo: document.getElementById("barcode").value,
-          nome: document.getElementById("nome").value,
-          quantidade: document.getElementById("quantidade").value,
-          validade: document.getElementById("validade").value,
-        };
-
-        document.getElementById("output").textContent = JSON.stringify(
-          produto,
-          null,
-          2,
-        );
-      }
+              document.getElementById("output").textContent = JSON.stringify(
+                produto,
+                null,
+                2,
+              );
+            }
     </script>
   </body>
 </html>
