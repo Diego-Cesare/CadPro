@@ -66,79 +66,79 @@
     </div>
 
     <script>
-            let stream = null;
-            let lendo = false;
+      let stream = null;
+      let lendo = false;
 
-            function digitarCodigo() {
-              const input = document.getElementById("barcode");
-              input.removeAttribute("readonly");
-              input.focus();
+      function digitarCodigo() {
+        const input = document.getElementById("barcode");
+        input.removeAttribute("readonly");
+        input.focus();
+      }
+
+      function abrirCamera() {
+        const scanner = document.getElementById("scanner");
+        const overlay = document.getElementById("overlay");
+
+        scanner.style.display = "block";
+        overlay.style.display = "block";
+
+        Quagga.init(
+          {
+            inputStream: {
+              type: "LiveStream",
+              target: scanner, // ✅ agora correto
+              constraints: {
+                facingMode: "environment",
+              },
+            },
+            locator: {
+              patchSize: "large",
+              halfSample: false,
+            },
+            decoder: {
+              readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "code_128_reader",
+              ],
+            },
+            locate: true,
+          },
+          function (err) {
+            if (err) {
+              console.error(err);
+              alert("Erro ao iniciar scanner");
+              return;
             }
 
-            function abrirCamera() {
-              const scanner = document.getElementById("scanner");
-              const overlay = document.getElementById("overlay");
+            Quagga.start();
+          },
+        );
 
-              scanner.style.display = "block";
-              overlay.style.display = "block";
+        Quagga.onDetected(function (result) {
+          if (!lendo) {
+            lendo = true;
 
-              Quagga.init(
-                {
-                  inputStream: {
-                    type: "LiveStream",
-                    target: scanner, // ✅ agora correto
-                    constraints: {
-                      facingMode: "environment",
-                    },
-                  },
-                  locator: {
-                    patchSize: "large",
-                    halfSample: false,
-                  },
-                  decoder: {
-                    readers: [
-                      "ean_reader",
-                      "ean_8_reader",
-                      "upc_reader",
-                      "code_128_reader",
-                    ],
-                  },
-                  locate: true,
-                },
-                function (err) {
-                  if (err) {
-                    console.error(err);
-                    alert("Erro ao iniciar scanner");
-                    return;
-                  }
+            const codigo = result.codeResult.code;
 
-                  Quagga.start();
-                },
-              );
+            document.getElementById("barcode").value = codigo;
 
-              Quagga.onDetected(function (result) {
-                if (!lendo) {
-                  lendo = true;
+            pararCamera();
 
-                  const codigo = result.codeResult.code;
+            if (navigator.vibrate) navigator.vibrate(200);
+          }
+        });
+      }
 
-                  document.getElementById("barcode").value = codigo;
+      function pararCamera() {
+        lendo = false;
 
-                  pararCamera();
+        Quagga.stop();
 
-                  if (navigator.vibrate) navigator.vibrate(200);
-                }
-              });
-            }
-
-            function pararCamera() {
-              lendo = false;
-
-              Quagga.stop();
-
-              document.getElementById("video").style.display = "none";
-              document.getElementById("overlay").style.display = "none";
-            }
+        document.getElementById("video").style.display = "none";
+        document.getElementById("overlay").style.display = "none";
+      }
 
       function pararCamera() {
         lendo = false;
@@ -149,12 +149,11 @@
         document.getElementById("overlay").style.display = "none";
       }
 
-              document.getElementById("output").textContent = JSON.stringify(
-                produto,
-                null,
-                2,
-              );
-            }
+      document.getElementById("output").textContent = JSON.stringify(
+        produto,
+        null,
+        2,
+      );
     </script>
   </body>
 </html>
