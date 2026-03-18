@@ -90,39 +90,20 @@
         Quagga.init(
           {
             inputStream: {
+              name: "Live",
               type: "LiveStream",
-              target: scanner,
-              constraints: {
-                facingMode: "environment",
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-              },
-              // 🔥 área central (muito importante)
-              area: {
-                top: "30%",
-                right: "20%",
-                left: "20%",
-                bottom: "30%",
-              },
-            },
-            locator: {
-              patchSize: "large",
-              halfSample: false,
+              // target: document.querySelector("#yourElement"), // Or '#yourElement' (optional)
             },
             decoder: {
-              readers: ["ean_reader"], // 🔥 foco total
+              readers: ["code_128_reader"],
             },
-            locate: true,
-            frequency: 10,
-            numOfWorkers: navigator.hardwareConcurrency || 4,
           },
           function (err) {
             if (err) {
-              console.error(err);
-              alert("Erro ao acessar câmera");
+              console.log(err);
               return;
             }
-
+            console.log("Initialization finished. Ready to start");
             Quagga.start();
           },
         );
