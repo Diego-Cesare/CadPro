@@ -70,12 +70,15 @@
 
     <script>
       let stream = null;
-      let codeReader = null;
+      let codeReader = new ZXing.BrowserMultiFormatReader();
+      let lendo = false;
 
       function abrirCamera() {
         const video = document.getElementById("video");
+        const overlay = document.getElementById("overlay");
 
         video.style.display = "block";
+        overlay.style.display = "block";
 
         const hints = new Map();
         hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
@@ -101,50 +104,36 @@
             video.srcObject = stream;
             video.play();
 
-            codeReader.decodeFromVideoDevice(null, video, (result, err) => {
-              if (result && !lendo) {
-                lendo = true;
-
-                document.getElementById("barcode").value = result.text;
-                pararCamera();
-
-                alert("Código lido: " + result.text);
-              }
-            });
+            // fallback automático entre métodos
+            tentarLeitura(video);
           })
           .catch(() => alert("Erro ao acessar câmera"));
       }
-      function pararCamera() {
-        lendo = false;
-        if (stream) {
-          stream.getTracks().forEach((track) => track.stop());
-        }
-        if (codeReader) {
-          codeReader.reset();
-        }
-        document.getElementById("video").style.display = "none";
-        document.getElementById("overlay").style.display = "none";
+
+      function tentarLeitura(video) {
+        // Método 1: leitura direta
+        codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+          if (result && !lendo) {
+            sucessoLeitura(result.text);
+          }
+        });
+
+        // Método 2: fallback com crop central
+        setTimeout(() => {
+          if (!lendo) {
+            leituraComCrop(video);
+          }
+        }, 2500);
       }
 
-      function digitarCodigo() {
-        const input = document.getElementById("barcode");
-        input.removeAttribute("readonly");
-        input.focus();
-      }
+      function leituraComCrop(video) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
-      function salvar() {
-        const produto = {
-          codigo: document.getElementById("barcode").value,
-          nome: document.getElementById("nome").value,
-          quantidade: document.getElementById("quantidade").value,
-          validade: document.getElementById("validade").value,
-        };
+        const largura = video.videoWidth;
+        const altura = video.videoHeight;
 
-        document.getElementById("output").textContent = JSON.stringify(
-          produto,
-          null,
-          2,
-        );
+        const cropL = largura * 0.2;
       }
     </script>
   </body>
